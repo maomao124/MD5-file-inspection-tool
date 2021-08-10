@@ -792,6 +792,31 @@ void getFilesAll(string path, vector<string>& files)
 	}
 }
 
+void getJustCurrentFile(string path, vector<string>& files)
+{
+	//文件句柄 
+	long  hFile = 0;
+	//文件信息 
+	struct _finddata_t fileinfo;
+	string p;
+	if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1)
+	{
+		do
+		{
+			if ((fileinfo.attrib & _A_SUBDIR))
+			{
+				;
+			}
+			else
+			{
+				files.push_back(fileinfo.name);
+				//files.push_back(p.assign(path).append("\\").append(fileinfo.name) ); 
+			}
+		} while (_findnext(hFile, &fileinfo) == 0);
+		_findclose(hFile);
+	}
+}
+
 string solve(string& s1, string& s2)
 {
 	if (s2.size() == 0)
@@ -897,28 +922,34 @@ int main()
 	cout << "                               欢迎使用文件检验工具" << endl;
 	loop:
 	cout << "***************************************菜单*************************************" << endl;
-	cout << "1.检验多文件的MD5值" << endl;
-	cout << "2.计算相对路径下所有文件的MD5值，并把数据写入MD5.txt文件" << endl;
-	cout << "3.计算当个文件的MD5值（文件路径从键盘读入）" << endl;
-	cout << "4.退出" << endl;
+	cout << "1.检验多文件的MD5值（依赖MD5.txt文件）" << endl;
+	cout << "2.计算相对路径下所有文件（包含子目录的文件）的MD5值，并把所有数据写入MD5.txt文件" << endl;
+	cout << "3.计算相对路径下文件（不包含子目录的文件）的MD5值，并把所有数据写入MD5.txt文件" << endl;
+	cout << "4.计算相对路径下部分文件（只遍历一层子目录）的MD5值，并把所有数据写入MD5.txt文件" << endl;
+	cout << "5.计算相对路径下文件（不包含子目录的文件）的MD5值，并把用户选择的数据写入MD5.txt文件" << endl;
+	cout << "6.计算相对路径下所有文件（包含子目录的文件）的MD5值，并把用户选择的数据写入MD5.txt文件" << endl;
+	cout << "7.计算单个文件的MD5值（文件路径从键盘读入）" << endl;
+	cout << "8.清屏" << endl;
+	cout << "9.退出" << endl;
 	cout << "********************************************************************************" << endl;
 	cout << "请选择：";
 	char c;
 	while (1)
 	{
 		c = _getch();
-		if (c == '1' || c == '2' || c == '3' || c == '4')
+		if (c == '1' || c == '2' || c == '3' || c == '4'||c=='5'||c=='6'||c=='7'||c=='8'||c=='9')
 		{
 			cout << c;
 			break;
 		}
 	}
 	cout << endl;
-	if (c == '2')
+	if (c == '2'||c=='3'||c=='4'||c=='5'||c=='6')
 	{
 		HWND wnd = GetHWnd();
 		cout << "\a";
-		int ret = MessageBox(NULL, TEXT("如果相对路径下存在MD5,txt文件，继续执行将会覆盖掉原来的数据！\n\t\t是否继续执行？"), TEXT("文件覆盖警告！！！"), MB_YESNO | MB_ICONQUESTION);
+		int ret;
+		ret = MessageBox(NULL, TEXT("如果相对路径下存在MD5,txt文件，继续执行将会覆盖掉原来的数据！\n\t\t是否继续执行？"), TEXT("文件覆盖警告！！！"), MB_YESNO | MB_ICONQUESTION);
 		if (ret != IDYES)
 			goto loop;
 	}
@@ -930,11 +961,11 @@ int main()
 	if (c == '1')
 	{
 		int error1 = 0;               //文件里MD5值为null的数量
-		string errorpath1[500];
+		//string errorpath1[500];
 		int error2 = 0;                //找不到文件路径，或者文件被占用，无法计算MD5值
-		string errorpath2[500];
+		//string errorpath2[500];
 		int error3 = 0;                //MD5值不一致，文件损坏
-		string errorpath3[5000];
+		//string errorpath3[5000];
 		ifstream in1("MD5.txt", ios::in);
 		if (!in1)
 		{
@@ -950,11 +981,23 @@ int main()
 			system("pause");
 			goto loop;
 		}
+		string* errorpath1 = new string[size];
+		string* errorpath2 = new string[size];
+		string* errorpath3 = new string[size];
 		string* filemd5 = new string [size];
 		string* path = new string[size];
-		for (int i = 0; i < size; i++)
+		string throwpath;
+		for (int i = -1; i < size; i++)
 		{
-			in1 >> path[i];
+			//in1 >> path[i];
+			if (i==-1)
+			{
+				getline(in1, throwpath);
+			}
+			else
+			{
+				getline(in1, path[i]);
+			}
 		}
 		for (int i = 0; i < size; i++)
 		{
@@ -1026,6 +1069,9 @@ int main()
 		delete[]md5;
 		delete[]filemd5;
 		delete[]path;
+		delete[]errorpath1;
+		delete[]errorpath2;
+		delete[]errorpath3;
 		//system("pause");
 	}
 
@@ -1057,6 +1103,11 @@ int main()
 				s++;
 
 			}
+			else if (files[i] == "MD5.txt")
+			{
+				s++;
+
+			}
 			else
 			{
 				cout << files[i].c_str() << endl;
@@ -1080,6 +1131,11 @@ int main()
 				//s++;
 
 			}
+			else if (files[i] == "MD5.txt")
+			{
+				//s++;
+
+			}
 			else
 			{
 				//cout << files[i].c_str() << endl;
@@ -1092,6 +1148,7 @@ int main()
 		size = size - s;
 		string* paths = new string[size];
 		string* fileMD5 = new string[size];
+		string throwpath1;
 		int filesize = 0;
 		cout << "正在读入文件，读取期间请不要关闭程序，以免文件损坏" << endl;
 		ifstream in("MD5.txt", ios::in);
@@ -1102,9 +1159,17 @@ int main()
 			cout << "文件中的数据：" << filesize << "，" << "程序里的数据：" << size << endl;
 			system("pause");
 		}
-		for (int i = 0;i < filesize;i++)
+		for (int i = -1;i < filesize;i++)
 		{
-			in >> paths[i];
+			//in >> paths[i];
+			if (i==-1)
+			{
+				getline(in, throwpath1);
+			}
+			else
+			{
+				getline(in, paths[i]);
+			}
 		}
 		cout << "读入完成" << endl;
 		in.close();
@@ -1139,7 +1204,596 @@ int main()
 		delete[]fileMD5;
 		//system("pause");
 	}
+
+
+
 	else if (c == '3')
+	{
+	cout << "加载中，请等待......." << endl;
+	vector<string> files;
+	char   buffer[MAX_PATH];
+	getcwd(buffer, MAX_PATH);
+	string filePath;
+	filePath.assign(buffer).append("\\");
+	////获取该路径下的文件  
+	getJustCurrentFile(filePath, files);
+	int size = files.size();
+	int s = 0;
+	filePath.append("\\\\");
+
+	for (int i = 0;i < size;i++)
+	{
+		solve(files[i], filePath);
+		if (files[i] == "MD5值检验工具.exe")
+		{
+			s++;
+
+		}
+		else if (files[i] == "._cache_MD5值检验工具.exe")
+		{
+			s++;
+
+		}
+		else if (files[i] == "MD5.txt")
+		{
+			s++;
+
+		}
+		else
+		{
+			cout << files[i].c_str() << endl;
+			//out << files[i].c_str() << endl;
+		}
+	}
+	cout << "正在把所有路径写入文件MD5.txt中......." << endl;
+	cout << "在此期间请不要关闭程序，以免文件损坏" << endl;
+	ofstream out("MD5.txt", ios::out);
+	out << size - s << endl;
+	for (int i = 0;i < size;i++)
+	{
+		solve(files[i], filePath);
+		if (files[i] == "MD5值检验工具.exe")
+		{
+			//s++;
+
+		}
+		else if (files[i] == "._cache_MD5值检验工具.exe")
+		{
+			//s++;
+
+		}
+		else if (files[i] == "MD5.txt")
+		{
+			//s++;
+
+		}
+		else
+		{
+			//cout << files[i].c_str() << endl;
+			out << files[i].c_str() << endl;
+		}
+	}
+	out.close();
+	cout << "写入完成" << endl;
+	cout << "一共" << size - s << "个文件" << endl;
+	size = size - s;
+	string* paths = new string[size];
+	string* fileMD5 = new string[size];
+	string throwpath1;
+	int filesize = 0;
+	cout << "正在读入文件，读取期间请不要关闭程序，以免文件损坏" << endl;
+	ifstream in("MD5.txt", ios::in);
+	in >> filesize;
+	if (filesize != size)
+	{
+		cout << "文件总数异常，将已文件的数据为基准" << endl;
+		cout << "文件中的数据：" << filesize << "，" << "程序里的数据：" << size << endl;
+		system("pause");
+	}
+	for (int i = -1;i < filesize;i++)
+	{
+		//in >> paths[i];
+		if (i == -1)
+		{
+			getline(in, throwpath1);
+		}
+		else
+		{
+			getline(in, paths[i]);
+		}
+	}
+	cout << "读入完成" << endl;
+	in.close();
+	cout << "正在计算MD5值......." << endl;
+	int error = 0;
+	for (int i = 0;i < filesize;i++)
+	{
+		fileMD5[i] = FileDigest(paths[i]);
+		if (fileMD5[i] == "")
+		{
+			fileMD5[i] = "NULL";
+			cout << "\a";
+			error = error + 1;
+		}
+		cout << "第" << i + 1 << "个：" << fileMD5[i] << "    " << paths[i] << endl;
+	}
+	cout << "计算完成" << endl;
+	ofstream out2("MD5.txt", ios::app);
+	cout << "开始把MD5值写入文件.........." << endl;
+	for (int i = 0; i < filesize; i++)
+	{
+		out2 << fileMD5[i] << endl;
+	}
+	out2.close();
+	cout << "写入完成" << endl;
+	if (error != 0)
+	{
+		cout << "                       " << error << "个文件没有正确计算出MD5值！！！！！" << endl;
+	}
+	cout << "任务完成" << endl << endl;
+	delete[]paths;
+	delete[]fileMD5;
+	//system("pause");
+	}
+
+
+
+	else if (c == '4')
+	{
+	cout << "加载中，请等待......." << endl;
+	vector<string> files;
+	char   buffer[MAX_PATH];
+	getcwd(buffer, MAX_PATH);
+	string filePath;
+	filePath.assign(buffer).append("\\");
+	////遍历一层
+	getFiles(filePath,"", files);
+	int size = files.size();
+	int s = 0;
+	filePath.append("\\\\");
+
+	for (int i = 0;i < size;i++)
+	{
+		solve(files[i], filePath);
+		if (files[i] == "MD5值检验工具.exe")
+		{
+			s++;
+
+		}
+		else if (files[i] == "._cache_MD5值检验工具.exe")
+		{
+			s++;
+
+		}
+		else if (files[i] == "MD5.txt")
+		{
+			s++;
+
+		}
+		else
+		{
+			cout << files[i].c_str() << endl;
+			//out << files[i].c_str() << endl;
+		}
+	}
+	cout << "正在把所有路径写入文件MD5.txt中......." << endl;
+	cout << "在此期间请不要关闭程序，以免文件损坏" << endl;
+	ofstream out("MD5.txt", ios::out);
+	out << size - s << endl;
+	for (int i = 0;i < size;i++)
+	{
+		//solve(files[i], filePath);
+		if (files[i] == "MD5值检验工具.exe")
+		{
+			//s++;
+
+		}
+		else if (files[i] == "._cache_MD5值检验工具.exe")
+		{
+			//s++;
+
+		}
+		else if (files[i] == "MD5.txt")
+		{
+			//s++;
+
+		}
+		else
+		{
+			//cout << files[i].c_str() << endl;
+			out << files[i].c_str() << endl;
+		}
+	}
+	out.close();
+	cout << "写入完成" << endl;
+	cout << "一共" << size - s << "个文件" << endl;
+	size = size - s;
+	string* paths = new string[size];
+	string* fileMD5 = new string[size];
+	string throwpath1;
+	int filesize = 0;
+	cout << "正在读入文件，读取期间请不要关闭程序，以免文件损坏" << endl;
+	ifstream in("MD5.txt", ios::in);
+	in >> filesize;
+	if (filesize != size)
+	{
+		cout << "文件总数异常，将已文件的数据为基准" << endl;
+		cout << "文件中的数据：" << filesize << "，" << "程序里的数据：" << size << endl;
+		system("pause");
+	}
+	for (int i = -1;i < filesize;i++)
+	{
+		//in >> paths[i];
+		if (i == -1)
+		{
+			getline(in, throwpath1);
+		}
+		else
+		{
+			getline(in, paths[i]);
+		}
+	}
+	cout << "读入完成" << endl;
+	in.close();
+	cout << "正在计算MD5值......." << endl;
+	int error = 0;
+	for (int i = 0;i < filesize;i++)
+	{
+		fileMD5[i] = FileDigest(paths[i]);
+		if (fileMD5[i] == "")
+		{
+			fileMD5[i] = "NULL";
+			cout << "\a";
+			error = error + 1;
+		}
+		cout << "第" << i + 1 << "个：" << fileMD5[i] << "    " << paths[i] << endl;
+	}
+	cout << "计算完成" << endl;
+	ofstream out2("MD5.txt", ios::app);
+	cout << "开始把MD5值写入文件.........." << endl;
+	for (int i = 0; i < filesize; i++)
+	{
+		out2 << fileMD5[i] << endl;
+	}
+	out2.close();
+	cout << "写入完成" << endl;
+	if (error != 0)
+	{
+		cout << "                       " << error << "个文件没有正确计算出MD5值！！！！！" << endl;
+	}
+	cout << "任务完成" << endl << endl;
+	delete[]paths;
+	delete[]fileMD5;
+	//system("pause");
+	}
+
+
+
+
+	else if (c == '5')
+	{
+	cout << "加载中，请等待......." << endl;
+	vector<string> files;
+	char   buffer[MAX_PATH];
+	getcwd(buffer, MAX_PATH);
+	string filePath;
+	filePath.assign(buffer).append("\\");
+	////获取该路径下的文件  
+	getJustCurrentFile(filePath, files);
+	int size = files.size();
+	int s = 0;
+	filePath.append("\\\\");
+	//int* choose = new int[size];
+
+	for (int i = 0;i < size;i++)
+	{
+		solve(files[i], filePath);
+		if (files[i] == "MD5值检验工具.exe")
+		{
+			s++;
+
+		}
+		else if (files[i] == "._cache_MD5值检验工具.exe")
+		{
+			s++;
+
+		}
+		else if (files[i] == "MD5.txt")
+		{
+			s++;
+
+		}
+		else
+		{
+			cout << files[i].c_str() << endl;
+			//out << files[i].c_str() << endl;
+		}
+	}
+	
+	//out << size - s << endl;
+	string* p = new string[size - s];
+	int pa = 0;
+	char choose = 0;
+	cout << endl;
+	for (int i = 0;i < size;i++)
+	{
+		solve(files[i], filePath);
+		if (files[i] == "MD5值检验工具.exe")
+		{
+			//s++;
+
+		}
+		else if (files[i] == "._cache_MD5值检验工具.exe")
+		{
+			//s++;
+
+		}
+		else if (files[i] == "MD5.txt")
+		{
+			//s++;
+
+		}
+		else
+		{
+			cout <<"路径：" << files[i].c_str() << endl;
+			cout << "是否需要把此路径写入文件里？    1.需要    0.不需要" << endl;
+			cout << "请输入0或者1：";
+			while (1)
+			{
+				c = getch();
+				if (c=='0')
+				{
+					s++;
+					break;
+				}
+				else if (c == '1')
+				{
+					//out << files[i].c_str() << endl;
+					p[pa] = files[i].c_str();
+					pa++;
+					break;
+				}
+			}
+			cout << endl;
+		}
+	}
+	cout << "正在把所有路径写入文件MD5.txt中......." << endl;
+	cout << "在此期间请不要关闭程序，以免文件损坏" << endl;
+	ofstream out("MD5.txt", ios::out);
+	out << size - s << endl;
+	for (int i = 0; i < pa; i++)
+	{
+		out << p[i] << endl;
+	}
+	out.close();
+	cout << endl;
+	cout << "写入完成" << endl;
+	cout << "一共" << size - s << "个文件" << endl;
+	size = size - s;
+	string* paths = new string[size];
+	string* fileMD5 = new string[size];
+	string throwpath1;
+	int filesize = 0;
+	cout << "正在读入文件，读取期间请不要关闭程序，以免文件损坏" << endl;
+	ifstream in("MD5.txt", ios::in);
+	in >> filesize;
+	if (filesize != size)
+	{
+		cout << "文件总数异常，将已文件的数据为基准" << endl;
+		cout << "文件中的数据：" << filesize << "，" << "程序里的数据：" << size << endl;
+		system("pause");
+	}
+	for (int i = -1;i < filesize;i++)
+	{
+		//in >> paths[i];
+		if (i == -1)
+		{
+			getline(in, throwpath1);
+		}
+		else
+		{
+			getline(in, paths[i]);
+		}
+	}
+	cout << "读入完成" << endl;
+	in.close();
+	cout << "正在计算MD5值......." << endl;
+	int error = 0;
+	for (int i = 0;i < filesize;i++)
+	{
+		fileMD5[i] = FileDigest(paths[i]);
+		if (fileMD5[i] == "")
+		{
+			fileMD5[i] = "NULL";
+			cout << "\a";
+			error = error + 1;
+		}
+		cout << "第" << i + 1 << "个：" << fileMD5[i] << "    " << paths[i] << endl;
+	}
+	cout << "计算完成" << endl;
+	ofstream out2("MD5.txt", ios::app);
+	cout << "开始把MD5值写入文件.........." << endl;
+	for (int i = 0; i < filesize; i++)
+	{
+		out2 << fileMD5[i] << endl;
+	}
+	out2.close();
+	cout << "写入完成" << endl;
+	if (error != 0)
+	{
+		cout << "                       " << error << "个文件没有正确计算出MD5值！！！！！" << endl;
+	}
+	cout << "任务完成" << endl << endl;
+	delete[]paths;
+	delete[]fileMD5;
+	//system("pause");
+	}
+
+
+
+	else if (c == '6')
+	{
+	cout << "加载中，请等待......." << endl;
+	vector<string> files;
+	char   buffer[MAX_PATH];
+	getcwd(buffer, MAX_PATH);
+	string filePath;
+	filePath.assign(buffer).append("\\");
+	////获取该路径下的文件  
+	getFilesAll(filePath, files);
+	int size = files.size();
+	int s = 0;
+	filePath.append("\\\\");
+	//int* choose = new int[size];
+
+	for (int i = 0;i < size;i++)
+	{
+		solve(files[i], filePath);
+		if (files[i] == "MD5值检验工具.exe")
+		{
+			s++;
+
+		}
+		else if (files[i] == "._cache_MD5值检验工具.exe")
+		{
+			s++;
+
+		}
+		else if (files[i] == "MD5.txt")
+		{
+			s++;
+
+		}
+		else
+		{
+			cout << files[i].c_str() << endl;
+			//out << files[i].c_str() << endl;
+		}
+	}
+
+	//out << size - s << endl;
+	string* p = new string[size - s];
+	int pa = 0;
+	char choose = 0;
+	cout << endl;
+	for (int i = 0;i < size;i++)
+	{
+		solve(files[i], filePath);
+		if (files[i] == "MD5值检验工具.exe")
+		{
+			//s++;
+
+		}
+		else if (files[i] == "._cache_MD5值检验工具.exe")
+		{
+			//s++;
+
+		}
+		else if (files[i] == "MD5.txt")
+		{
+			//s++;
+
+		}
+		else
+		{
+			cout << "路径：" << files[i].c_str() << endl;
+			cout << "是否需要把此路径写入文件里？    1.需要    0.不需要" << endl;
+			cout << "请输入0或者1：";
+			while (1)
+			{
+				c = getch();
+				if (c == '0')
+				{
+					s++;
+					break;
+				}
+				else if (c == '1')
+				{
+					//out << files[i].c_str() << endl;
+					p[pa] = files[i].c_str();
+					pa++;
+					break;
+				}
+			}
+			cout << endl;
+		}
+	}
+	cout << "正在把所有路径写入文件MD5.txt中......." << endl;
+	cout << "在此期间请不要关闭程序，以免文件损坏" << endl;
+	ofstream out("MD5.txt", ios::out);
+	out << size - s << endl;
+	for (int i = 0; i < pa; i++)
+	{
+		out << p[i] << endl;
+	}
+	out.close();
+	cout << endl;
+	cout << "写入完成" << endl;
+	cout << "一共" << size - s << "个文件" << endl;
+	size = size - s;
+	string* paths = new string[size];
+	string* fileMD5 = new string[size];
+	string throwpath1;
+	int filesize = 0;
+	cout << "正在读入文件，读取期间请不要关闭程序，以免文件损坏" << endl;
+	ifstream in("MD5.txt", ios::in);
+	in >> filesize;
+	if (filesize != size)
+	{
+		cout << "文件总数异常，将已文件的数据为基准" << endl;
+		cout << "文件中的数据：" << filesize << "，" << "程序里的数据：" << size << endl;
+		system("pause");
+	}
+	for (int i = -1;i < filesize;i++)
+	{
+		//in >> paths[i];
+		if (i == -1)
+		{
+			getline(in, throwpath1);
+		}
+		else
+		{
+			getline(in, paths[i]);
+		}
+	}
+	cout << "读入完成" << endl;
+	in.close();
+	cout << "正在计算MD5值......." << endl;
+	int error = 0;
+	for (int i = 0;i < filesize;i++)
+	{
+		fileMD5[i] = FileDigest(paths[i]);
+		if (fileMD5[i] == "")
+		{
+			fileMD5[i] = "NULL";
+			cout << "\a";
+			error = error + 1;
+		}
+		cout << "第" << i + 1 << "个：" << fileMD5[i] << "    " << paths[i] << endl;
+	}
+	cout << "计算完成" << endl;
+	ofstream out2("MD5.txt", ios::app);
+	cout << "开始把MD5值写入文件.........." << endl;
+	for (int i = 0; i < filesize; i++)
+	{
+		out2 << fileMD5[i] << endl;
+	}
+	out2.close();
+	cout << "写入完成" << endl;
+	if (error != 0)
+	{
+		cout << "                       " << error << "个文件没有正确计算出MD5值！！！！！" << endl;
+	}
+	cout << "任务完成" << endl << endl;
+	delete[]paths;
+	delete[]fileMD5;
+	//system("pause");
+	}
+
+
+
+
+	else if (c == '7')
 	{
 	cout << "请输入文件路径(注意要使用两个\\，而不是一个\\)：" << endl;
 	string s2;
@@ -1153,20 +1807,32 @@ int main()
 	if (s1.length() == 0)
 	{
 		cout << "文件不存在！！！" << endl;
+		free(s);
 		system("pause");
 		goto loop;
 	}
 	cout << "文件的MD5值：" << endl;
 	cout << s1 << endl << endl;
+	free(s);
+	goto loop;
+    }
+
+
+	else if (c == '8')
+	{
+	system("CLS");
 	goto loop;
     }
 
 	//*************************计时结束***************************************
 
 	runend();
-	system("pause");
-	thread t(speak);
-	t.detach();
+	if (c != '9')
+	{
+		system("pause");
+		thread t(speak);
+		t.detach();
+	}
 
 	/*   ************************************                            //微软TTS语音模板
 	ISpVoice* pVoice = NULL;                                            //创建一个ISpVoice的空指针
